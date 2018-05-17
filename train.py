@@ -14,12 +14,36 @@ from keras.datasets import mnist
 from keras.optimizers import Adam
 from keras import initializers
 
+import common
+import skimage.io
+import skimage.color
+from sklearn.model_selection import train_test_split
+
 # Let Keras know that we are using tensorflow as our backend engine
 os.environ["KERAS_BACKEND"] = "tensorflow"
 # To make sure that we can reproduce the experiment and get the same results
 np.random.seed(10)
 # The dimension of our random noise vector.
 random_dim = 100
+
+
+def load_logo():
+    xs = []
+    ys = []
+    for root, dirs, files in os.walk(common.CROPPED_IMAGE_DIR):
+        for f in files:
+            class_name = os.path.basename(root)
+            img = skimage.io.imread(os.path.join(root, f))
+            img_gray = skimage.color.rgb2gray(img)
+            xs.append(img_gray)
+            ys.append(common.CLASS_NAME.index(class_name))
+    # split dataset
+    x_train, x_test, y_train, y_test = train_test_split(xs, ys, train_size=0.9)
+    # normalize out inputs to be in the range[-1, 1]
+    x_train = (x_train.astype(np.float32) - 127.5) / 127.5
+    # convert x_train with a shape of (n_imgs, height, width) to (n_imgs, height*width)
+    x_train = x_train.reshape((len(x_train), -1))
+    return (x_train, y_train, x_test, y_test)
 
 
 def load_minst_data():
