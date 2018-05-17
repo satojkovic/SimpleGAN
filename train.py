@@ -18,6 +18,7 @@ import common
 import skimage.io
 import skimage.color
 from sklearn.model_selection import train_test_split
+import re
 
 # Let Keras know that we are using tensorflow as our backend engine
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -32,18 +33,21 @@ def load_logo():
     ys = []
     for root, dirs, files in os.walk(common.CROPPED_IMAGE_DIR):
         for f in files:
-            class_name = os.path.basename(root)
-            img = skimage.io.imread(os.path.join(root, f))
-            img_gray = skimage.color.rgb2gray(img)
-            xs.append(img_gray)
-            ys.append(common.CLASS_NAME.index(class_name))
+            if re.search(r'.jpg', f):
+                class_name = os.path.basename(root)
+                img = skimage.io.imread(os.path.join(root, f))
+                img_gray = skimage.color.rgb2gray(img)
+                xs.append(img_gray)
+                ys.append(common.CLASS_NAME.index(class_name))
     # split dataset
-    x_train, x_test, y_train, y_test = train_test_split(xs, ys, train_size=0.9)
+    x_train, x_test, y_train, y_test = train_test_split(
+        np.asarray(xs), np.asarray(ys), train_size=0.9)
     # normalize out inputs to be in the range[-1, 1]
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
     # convert x_train with a shape of (n_imgs, height, width) to (n_imgs, height*width)
+    x_height_width = (x_train.shape[1], x_train.shape[2])
     x_train = x_train.reshape((len(x_train), -1))
-    return (x_train, y_train, x_test, y_test)
+    return (x_train, y_train, x_test, y_test), x_height_width
 
 
 def load_minst_data():
@@ -53,15 +57,16 @@ def load_minst_data():
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
     # convert x_train with a shape of (60000, 28, 28) to (60000, 784) so we have
     # 784 columns per row
+    x_height_width = (x_train.shape[1], x_train.shape[2])
     x_train = x_train.reshape(60000, 784)
-    return (x_train, y_train, x_test, y_test)
+    return (x_train, y_train, x_test, y_test), x_height_width
 
 
 def get_optimizer():
     return Adam(lr=0.0002, beta_1=0.5)
 
 
-def get_generator(optimizer):
+def get_generator(optimizer, output_dim=784):
     generator = Sequential()
     generator.add(
         Dense(
@@ -76,17 +81,17 @@ def get_generator(optimizer):
     generator.add(Dense(1024))
     generator.add(LeakyReLU(0.2))
 
-    generator.add(Dense(784, activation='tanh'))
+    generator.add(Dense(output_dim, activation='tanh'))
     generator.compile(loss='binary_crossentropy', optimizer=optimizer)
     return generator
 
 
-def get_discriminator(optimizer):
+def get_discriminator(optimizer, input_dim=784):
     discriminator = Sequential()
     discriminator.add(
         Dense(
             1024,
-            input_dim=784,
+            input_dim=input_dim,
             kernel_initializer=initializers.RandomNormal(stddev=0.02)))
     discriminator.add(LeakyReLU(0.2))
     discriminator.add(Dropout(0.3))
@@ -121,12 +126,14 @@ def get_gan_network(discriminator, random_dim, generator, optimizer):
 
 def plot_generated_images(epoch,
                           generator,
+                          train_shape=(28, 28),
                           examples=100,
                           dim=(10, 10),
                           figsize=(10, 10)):
     noise = np.random.normal(0, 1, size=[examples, random_dim])
     generated_images = generator.predict(noise)
-    generated_images = generated_images.reshape(examples, 28, 28)
+    generated_images = generated_images.reshape(examples, train_shape[0],
+                                                train_shape[1])
 
     plt.figure(figsize=figsize)
     for i in range(generated_images.shape[0]):
@@ -139,14 +146,14 @@ def plot_generated_images(epoch,
 
 def train(epochs=1, batch_size=128):
     # Get the training and testing data
-    x_train, y_train, x_test, y_test = load_minst_data()
+    (x_train, y_train, x_test, y_test), x_height_width = load_logo()
     # Split the training data into batches of size 128
     batch_count = x_train.shape[0] // batch_size
 
     # Build our GAN netowrk
     adam = get_optimizer()
-    generator = get_generator(adam)
-    discriminator = get_discriminator(adam)
+    generator = get_generator(adam, output_dim=x_train.shape[1])
+    discriminator = get_discriminator(adam, x_train.shape[1])
     gan = get_gan_network(discriminator, random_dim, generator, adam)
 
     for e in range(1, epochs + 1):
@@ -157,7 +164,7 @@ def train(epochs=1, batch_size=128):
             image_batch = x_train[np.random.randint(
                 0, x_train.shape[0], size=batch_size)]
 
-            # Generate fake MNIST images
+            # Generate fake logo images
             generated_images = generator.predict(noise)
             X = np.concatenate([image_batch, generated_images])
 
@@ -177,8 +184,8 @@ def train(epochs=1, batch_size=128):
             gan.train_on_batch(noise, y_gen)
 
         if e == 1 or e % 20 == 0:
-            plot_generated_images(e, generator)
+            plot_generated_images(e, generator, train_shape=x_height_width)
 
 
 if __name__ == '__main__':
-    train(epochs=10, batch_size=128)
+    train(epochs=1000, batch_size=128)
