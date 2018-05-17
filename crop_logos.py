@@ -105,7 +105,6 @@ def crop_and_aug_random(annot_train):
 
         # Read image by skimage
         img = skimage.io.imread(os.path.join(common.TRAIN_IMAGE_DIR, fn))
-        img = skimage.exposure.equalize_adapthist(img)
 
         # Crop logo area
         annot_rect = util.get_annot_rect(annot)
