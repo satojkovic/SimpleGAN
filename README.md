@@ -6,6 +6,8 @@ Original implementation is provided with this link.
 ## Setup
 
 ```csh
+$ git clone https://github.com/satojkovic/SimpleGAN
+$ cd SimpleGAN
 $ wget https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/utils/mnist_reader.py
+$ python train.py
 ```
-
