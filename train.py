@@ -20,12 +20,25 @@ import skimage.color
 from sklearn.model_selection import train_test_split
 import re
 
+import mnist_reader
+
 # Let Keras know that we are using tensorflow as our backend engine
 os.environ["KERAS_BACKEND"] = "tensorflow"
 # To make sure that we can reproduce the experiment and get the same results
 np.random.seed(10)
 # The dimension of our random noise vector.
 random_dim = 100
+
+
+def load_mnist_fashion():
+    x_train, y_train = mnist_reader.load_mnist('data/fashion', kind='train')
+    x_test, y_test = mnist_reader.load_mnist('data/fashion', kind='t10k')
+    # normalize our inputs to be in the range[-1, 1]
+    x_train = (x_train.astype(np.float32) - 127.5) / 127.5
+    # convert x_train with a shape of (n_imgs, height, width)
+    # to (n_imgs, height*width)
+    x_height_width = (28, 28)
+    return (x_train, y_train, x_test, y_test), x_height_width
 
 
 def load_logo():
@@ -44,19 +57,20 @@ def load_logo():
         np.asarray(xs), np.asarray(ys), train_size=0.9)
     # normalize out inputs to be in the range[-1, 1]
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
-    # convert x_train with a shape of (n_imgs, height, width) to (n_imgs, height*width)
+    # convert x_train with a shape of (n_imgs, height, width)
+    # to (n_imgs, height*width)
     x_height_width = (x_train.shape[1], x_train.shape[2])
     x_train = x_train.reshape((len(x_train), -1))
     return (x_train, y_train, x_test, y_test), x_height_width
 
 
-def load_minst_data():
+def load_mnist_data():
     # load the data
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    # normalize our inputs to be in the range[-1, 1] 
+    # normalize our inputs to be in the range[-1, 1]
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
-    # convert x_train with a shape of (60000, 28, 28) to (60000, 784) so we have
-    # 784 columns per row
+    # convert x_train with a shape of (60000, 28, 28) to (60000, 784)
+    # so we have 784 columns per row
     x_height_width = (x_train.shape[1], x_train.shape[2])
     x_train = x_train.reshape(60000, 784)
     return (x_train, y_train, x_test, y_test), x_height_width
@@ -146,7 +160,7 @@ def plot_generated_images(epoch,
 
 def train(epochs=1, batch_size=128):
     # Get the training and testing data
-    (x_train, y_train, x_test, y_test), x_height_width = load_logo()
+    (x_train, y_train, x_test, y_test), x_height_width = load_mnist_fashion()
     # Split the training data into batches of size 128
     batch_count = x_train.shape[0] // batch_size
 
@@ -171,7 +185,7 @@ def train(epochs=1, batch_size=128):
             # Labels for generated and real data
             y_dis = np.zeros(2 * batch_size)
             # One-sided label smoothing
-            y_dis[:batch_size] = 0.9
+            y_dis[:batch_size] = 1.0
 
             # Train discriminator
             discriminator.trainable = True
@@ -188,4 +202,4 @@ def train(epochs=1, batch_size=128):
 
 
 if __name__ == '__main__':
-    train(epochs=1000, batch_size=128)
+    train(epochs=300, batch_size=128)
