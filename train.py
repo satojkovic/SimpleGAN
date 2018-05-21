@@ -178,7 +178,7 @@ def train(epochs=1, batch_size=128):
             image_batch = x_train[np.random.randint(
                 0, x_train.shape[0], size=batch_size)]
 
-            # Generate fake logo images
+            # Generate fake images
             generated_images = generator.predict(noise)
             X = np.concatenate([image_batch, generated_images])
 
