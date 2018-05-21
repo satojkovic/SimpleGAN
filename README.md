@@ -18,6 +18,11 @@ $ python train.py
 
 ## Results
 
-![example1](results/gan_generated_image_epoch_1.png)
-![example2](results/gan_generated_image_epoch_100.png)
-![example3](results/gan_generated_image_epoch_300.png)
+* Epoch 1
+  ![example1](results/gan_generated_image_epoch_1.png)
+
+* Epoch 100
+  ![example2](results/gan_generated_image_epoch_100.png)
+
+* Epoch 300
+  ![example3](results/gan_generated_image_epoch_300.png)
